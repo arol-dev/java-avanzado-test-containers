@@ -1,0 +1,13 @@
+# Reduce build context
+target/
+.git/
+.idea/
+.vscode/
+**/*.iml
+.mvn/
+docker/localstack/*.log
+Dockerfile*
+README.md
+docker-compose.yml
+*.md
+*.sh
