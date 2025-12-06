@@ -4,6 +4,53 @@ Aplicación de ejemplo con Spring Boot para demostrar el uso de Testcontainers y
 
 **Escenario:** la app recibe actualizaciones de acciones (stocks) desde una cola SQS, persiste los datos en Postgres y mantiene el precio en un caché Redis. Expone un API REST para consultar los valores.
 
+---
+
+## 🎓 Laboratorio: Pruebas de Integración con Testcontainers
+
+Este repositorio es un ejercicio práctico para aprender **Testcontainers** y su integración con **Spring Boot**.
+
+### Objetivos de aprendizaje
+
+- Configurar contenedores Docker para pruebas de integración
+- Usar `@DynamicPropertySource` para inyectar propiedades
+- Trabajar con diferentes tipos de contenedores:
+  - `PostgreSQLContainer` (contenedor especializado)
+  - `GenericContainer` (contenedor genérico)
+  - `LocalStackContainer` (simulación de AWS)
+- Probar flujos asíncronos con Awaitility
+
+### Ejercicios
+
+| # | Ejercicio | Archivo de test | Documentación |
+|---|-----------|----------------|---------------|
+| 1 | **PostgreSQL** - Pruebas de persistencia JPA | [StockRepositoryIT.java](src/test/java/com/example/stocks/containers/StockRepositoryIT.java) | [📖 Guía](docs/ejercicio-postgres.md) |
+| 2 | **Redis** - Pruebas de caché | [RedisCacheIT.java](src/test/java/com/example/stocks/containers/RedisCacheIT.java) | [📖 Guía](docs/ejercicio-redis.md) |
+| 3 | **LocalStack (SQS)** - Pruebas de mensajería | [SqsListenerIT.java](src/test/java/com/example/stocks/containers/SqsListenerIT.java) | [📖 Guía](docs/ejercicio-sqs.md) |
+
+### Cómo trabajar con los ejercicios
+
+1. **Lee la documentación** del ejercicio correspondiente en la carpeta `docs/`
+2. **Abre el archivo de test** indicado
+3. **Completa los TODO** siguiendo las instrucciones
+4. **Ejecuta el test** para verificar tu solución:
+
+   ```bash
+   mvn -Dtest=NombreDelTest verify
+   ```
+
+### Verificar tu progreso
+
+Ejecuta todos los tests de integración para verificar que has completado todos los ejercicios:
+
+```bash
+mvn verify
+```
+
+> **Nota**: Los tests de integración usan el sufijo `IT` y son ejecutados por el plugin `maven-failsafe-plugin` en la fase `verify`.
+
+---
+
 ## Diagrama de la lógica de la aplicación (PlantUML)
 
 El siguiente diagrama resume el flujo principal de la aplicación (API REST + procesamiento de mensajes SQS + persistencia y caché):
@@ -56,6 +103,8 @@ end note
 @enduml
 ```
 
+---
+
 ## Tecnologías
 
 - Spring Boot 3.4.x (Web, Data JPA, Data Redis, Validation)
@@ -64,118 +113,131 @@ end note
 - AWS SQS (LocalStack para entorno local)
 - Testcontainers 1.20.x (Postgres, LocalStack y Redis vía GenericContainer)
 
+---
+
 ## Estructura del proyecto
 
-- src/main/java/com/example/stocks:
-  - domain/Stock: entidad JPA.
-  - repository/StockRepository: repositorio Spring Data JPA.
-  - service/StockService: lógica de negocio, actualización desde mensajes + uso de cache Redis.
-  - service/StockCacheService: caché de precios con StringRedisTemplate.
-  - messaging/StockUpdateMessage: DTO que representa el mensaje SQS.
-  - messaging/SqsStockListener: listener con @SqsListener que procesa los mensajes y actualiza DB/Redis.
-  - api/StockController: endpoints REST para listar y consultar acciones.
-  - config/AwsSqsConfig: configuración base para listeners SQS.
-- src/main/resources/application.yml: configuración de DB, Redis y SQS (mediante variables de entorno).
-- docker-compose.yml: Postgres, Redis y LocalStack.
-- docker/localstack/10-create-sqs.sh: crea la cola SQS en el arranque de LocalStack.
-- src/test/java/com/example/stocks/containers/*: esqueletos de pruebas con Testcontainers.
+```
+src/main/java/com/example/stocks/
+├── domain/Stock.java              # Entidad JPA
+├── repository/StockRepository.java # Repositorio Spring Data JPA
+├── service/
+│   ├── StockService.java          # Lógica de negocio
+│   └── StockCacheService.java     # Caché con Redis
+├── messaging/
+│   ├── StockUpdateMessage.java    # DTO del mensaje SQS
+│   ├── SqsStockListener.java      # Listener SQS
+│   └── SqsStockSeeder.java        # Generador de mensajes de prueba
+├── api/StockController.java       # Endpoints REST
+└── config/AwsSqsConfig.java       # Configuración AWS
+
+src/test/java/com/example/stocks/
+├── containers/                    # 🎯 EJERCICIOS AQUÍ
+│   ├── StockRepositoryIT.java     # Ejercicio 1: PostgreSQL
+│   ├── RedisCacheIT.java          # Ejercicio 2: Redis
+│   └── SqsListenerIT.java         # Ejercicio 3: LocalStack SQS
+└── ...
+
+docs/
+├── ejercicio-postgres.md          # Guía ejercicio 1
+├── ejercicio-redis.md             # Guía ejercicio 2
+└── ejercicio-sqs.md               # Guía ejercicio 3
+```
+
+---
 
 ## Cómo ejecutar (local con Docker Compose)
 
-1) Requisitos previos:
+### Requisitos previos
 
-- Docker y Docker Compose instalados.
-- Java 21 y Maven 3.9+.
+- Docker y Docker Compose instalados
+- Java 21 y Maven 3.9+
 
-1) Levantar servicios externos:
+### 1) Levantar servicios externos
+
+```bash
 docker compose up -d
-Esto levanta:
-
-- Postgres en localhost:5432 (postgres/postgres)
-- Redis en localhost:6379
-- LocalStack en localhost:4566 con SQS y la cola stock-updates
-
-3A) Ejecutar la aplicación desde Maven (local, sin contenedor) — ejemplo con variables como argumentos JVM:
-`mvn spring-boot:run -Dspring-boot.run.jvmArguments="-DDB_HOST=localhost -DDB_PORT=5432 -DDB_NAME=stocks -DDB_USER=postgres -DDB_PASSWORD=postgres -DREDIS_HOST=localhost -DREDIS_PORT=6379 -DAWS_REGION=us-east-1 -DAWS_SQS_ENDPOINT=http://localhost:4566 -DSQS_QUEUE_NAME=stock-updates"`
-
-3B) Ejecutar la aplicación en contenedor junto a los servicios (Docker Compose):
-
-- Opción A (Buildpacks, recomendado con Spring Boot 3.4.x):
-  1. Construir imagen OCI con Paketo Buildpacks:
-     `mvn -DskipTests spring-boot:build-image`
-     Esto generará la imagen `java-avanzado-testcontainers:0.0.1-SNAPSHOT` usada por docker-compose.
-  2. Levantar todo (incluida la app):
-     `docker compose up -d app`
-- Opción B (Dockerfile incluido):
-  1. Construir la imagen con Dockerfile multi-stage:
-     `docker compose build app`
-  2. Levantar la app (si los servicios ya están arriba, sólo la app):
-     `docker compose up -d app`
-
-Notas:
-
-- La app expone el puerto 8080 (mapeado a localhost:8080 en docker-compose).
-- Las variables de entorno (DB_*, REDIS_*, AWS_*, SQS_QUEUE_NAME) se inyectan desde docker-compose y apuntan a los otros servicios del mismo Compose.
-
-1) Probar el API REST:
-
-- Listar acciones: curl <http://localhost:8080/api/stocks>
-- Consultar por símbolo (por ejemplo AAPL): curl <http://localhost:8080/api/stocks/AAPL>
-
-1) Enviar un mensaje a SQS (LocalStack):
-
-```shell
-awslocal sqs send-message --queue-url $(awslocal sqs get-queue-url --queue-name stock-updates --query QueueUrl --output text) --message-body '{"symbol":"AAPL","price":195.12,"updatedAt":"2025-01-01T12:00:00Z"}'
 ```
 
-### Configuración (application.yml)
+Esto levanta:
 
-Propiedades clave parametrizadas por variables de entorno:
+- Postgres en `localhost:5432` (postgres/postgres)
+- Redis en `localhost:6379`
+- LocalStack en `localhost:4566` con SQS y la cola `stock-updates`
 
-- Postgres: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-- Redis: REDIS_HOST, REDIS_PORT
-- SQS: AWS_REGION, AWS_SQS_ENDPOINT, SQS_QUEUE_NAME
-Valores por defecto apuntan a localhost y cola stock-updates.
+### 2) Ejecutar la aplicación
 
-### Pruebas con Testcontainers (GUÍA para estudiantes)
+**Opción A - Desde Maven (desarrollo):**
 
-Los tests incluidos son esqueletos con instrucciones en comentarios para completarlos. Practicar:
+```bash
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="\
+  -DDB_HOST=localhost -DDB_PORT=5432 -DDB_NAME=stocks \
+  -DDB_USER=postgres -DDB_PASSWORD=postgres \
+  -DREDIS_HOST=localhost -DREDIS_PORT=6379 \
+  -DAWS_REGION=us-east-1 -DAWS_SQS_ENDPOINT=http://localhost:4566 \
+  -DSQS_QUEUE_NAME=stock-updates"
+```
 
-1) Testcontainers + Postgres (StockRepositoryIT)
+**Opción B - Con Docker Compose:**
 
-- Usar PostgreSQLContainer con @Container y @Testcontainers.
-- Exponer propiedades con @DynamicPropertySource: spring.datasource.url, username, password.
-- Inyectar StockRepository y probar guardar/consultar.
+```bash
+mvn -DskipTests spring-boot:build-image
+docker compose up -d app
+```
 
-1) Testcontainers + Redis (RedisCacheIT)
+### 3) Probar el API REST
 
-- Usar GenericContainer("redis:7-alpine") con withExposedPorts(6379).
-- Propagar spring.data.redis.host y spring.data.redis.port con @DynamicPropertySource.
-- Inyectar StockCacheService y validar put/get.
+```bash
+# Listar todas las acciones
+curl http://localhost:8080/api/stocks
 
-1) Testcontainers + LocalStack (SQS) (SqsListenerIT)
+# Consultar por símbolo
+curl http://localhost:8080/api/stocks/AAPL
+```
 
-- Usar LocalStackContainer con el servicio SQS.
-- Propagar cloud.aws.region.static, cloud.aws.sqs.endpoint, credenciales.
-- Crear la cola con AWS SDK v2 (SqsClient) o utilidades de Spring Cloud AWS.
-- Enviar un mensaje JSON con la forma de StockUpdateMessage.
-- Esperar con Awaitility a que el listener procese y verificar en DB/Redis.
+### 4) Enviar un mensaje a SQS
 
-### Ejercicios propuestos
+```bash
+awslocal sqs send-message \
+  --queue-url $(awslocal sqs get-queue-url --queue-name stock-updates --query QueueUrl --output text) \
+  --message-body '{"symbol":"AAPL","price":195.12,"updatedAt":"2025-01-01T12:00:00Z"}'
+```
 
-1) Añadir un endpoint para crear/actualizar manualmente una acción y almacenarla en Redis.
-2) Añadir validación al DTO StockUpdateMessage (precio > 0) y probar el comportamiento en el listener.
-3) Implementar una DLQ (cola de mensajes muertos) en SQS para errores.
-4) Cambiar la caducidad del caché y observar el impacto en el endpoint.
+---
 
-### Notas sobre versiones
+## Configuración (application.yml)
 
-- Spring Boot 3.4.x en pom.xml.
-- Spring Cloud AWS SQS 3.1.x compatible con Spring Boot 3.x.
-- Testcontainers 1.20.x.
+| Servicio | Variables de entorno |
+|----------|---------------------|
+| PostgreSQL | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` |
+| Redis | `REDIS_HOST`, `REDIS_PORT` |
+| SQS | `AWS_REGION`, `AWS_SQS_ENDPOINT`, `SQS_QUEUE_NAME` |
 
-### Resolución de problemas
+---
 
-- La app no arranca: verifica Postgres/Redis/LocalStack.
-- Mensaje SQS no se deserializa: JSON válido con fields symbol, price, updatedAt (ISO-8601).
-- Problemas de puertos: ajusta [docker-compose.yml](docker-compose.yml) o variables de entorno.
+## Ejercicios adicionales propuestos
+
+1. ✨ Añadir un endpoint para crear/actualizar manualmente una acción
+2. ✅ Añadir validación al DTO `StockUpdateMessage` (precio > 0)
+3. 📬 Implementar una DLQ (cola de mensajes muertos) en SQS
+4. ⏰ Cambiar la caducidad del caché y observar el impacto
+
+---
+
+## Resolución de problemas
+
+| Problema | Solución |
+|----------|----------|
+| La app no arranca | Verificar que Postgres/Redis/LocalStack estén corriendo |
+| Mensaje SQS no se deserializa | Verificar JSON válido con campos `symbol`, `price`, `updatedAt` (ISO-8601) |
+| Tests fallan con "port already bound" | Detener contenedores previos: `docker compose down` |
+| "Mapped port can only be obtained..." | Usar bloque `static {}` para iniciar contenedores |
+
+---
+
+## Notas sobre versiones
+
+- Spring Boot 3.4.x
+- Spring Cloud AWS SQS 3.1.x
+- Testcontainers 1.20.x
+- JDK 21

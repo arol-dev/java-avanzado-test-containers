@@ -1,64 +1,59 @@
 package com.example.stocks.containers;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.math.BigDecimal;
-
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-
-import com.example.stocks.service.StockCacheService;
 
 /**
- * Ejemplo de configuración de prueba mínima para Spring Boot con Testcontainers
- * y Redis.
- *
- * Elementos clave para esta configuración mínima:
+ * Prueba de integración con Redis usando Testcontainers.
+ * 
+ * <h2>Objetivos de aprendizaje:</h2>
+ * <ul>
+ * <li>Usar GenericContainer para contenedores sin soporte especializado</li>
+ * <li>Entender la diferencia entre @DataRedisTest y @SpringBootTest</li>
+ * <li>Probar operaciones de caché con StringRedisTemplate</li>
+ * </ul>
+ * 
+ * <h2>Instrucciones:</h2>
+ * <p>
+ * Consulta el archivo <code>docs/ejercicio-redis.md</code> para ver los pasos
+ * detallados.
  * </p>
- * - @DataRedisTest: Esta anotación carga solo los componentes de Spring Data
- * Redis, evitando cargar el contexto completo de la aplicación.
- * - @Testcontainers: Activa el soporte de Testcontainers para JUnit 5,
- * gestionando el ciclo de vida de los contenedores.
- * - @Container: Marca la instancia de RedisContainer para que sea gestionada
- * por Testcontainers.
- * - @DynamicPropertySource: Registra dinámicamente el host y el puerto del
- * contenedor Redis para la autoconfiguración de Spring Boot.
- * - @Import(StockCacheService.class): Importa solo el servicio necesario para
- * esta prueba.
+ * 
+ * <h2>Tareas:</h2>
+ * <ol>
+ * <li>Añadir las anotaciones necesarias (@Import, etc.)</li>
+ * <li>Declarar el contenedor Redis con GenericContainer</li>
+ * <li>Configurar @DynamicPropertySource</li>
+ * <li>Inyectar StockCacheService</li>
+ * <li>Implementar el test de put/get</li>
+ * </ol>
+ * 
+ * @see <a href="docs/ejercicio-redis.md">Guía completa del ejercicio</a>
  */
 @DataRedisTest
-@Import(StockCacheService.class)
+// TODO: Añadir @Import(StockCacheService.class) para importar el servicio
 @Testcontainers
 @ActiveProfiles("test")
 class RedisCacheIT {
 
-    @Autowired
-    private StockCacheService cache;
+    // TODO: Inyectar StockCacheService
 
-    @SuppressWarnings("resource")
-    @Container
-    static final GenericContainer<?> redis = new GenericContainer<>(
-            DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
+    // TODO: Declarar el contenedor Redis
+    // Usar GenericContainer con imagen "redis:7-alpine"
+    // Exponer puerto 6379 con withExposedPorts()
+    // Usar anotación @Container
 
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
+    // TODO: Añadir @DynamicPropertySource para configurar:
+    // - spring.data.redis.host (usar redis::getHost)
+    // - spring.data.redis.port (usar redis.getMappedPort(6379))
 
     @Test
     void putCache() {
-        cache.put("GOOG", BigDecimal.TEN);
-        assertThat(cache.get("GOOG")).hasValue(BigDecimal.TEN);
+        // TODO: Implementar el test
+        // 1) Usar cache.put("GOOG", BigDecimal.TEN) para guardar un valor
+        // 2) Usar cache.get("GOOG") para recuperarlo
+        // 3) Verificar con assertThat que el valor devuelto es BigDecimal.TEN
     }
 }
