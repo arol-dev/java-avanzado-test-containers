@@ -1,6 +1,9 @@
 package com.example.stocks.containers;
 
-import com.example.stocks.service.StockCacheService;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
@@ -13,9 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.math.BigDecimal;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.example.stocks.service.StockCacheService;
 
 /**
  * Ejemplo de configuración de prueba mínima para Spring Boot con Testcontainers
@@ -43,6 +44,7 @@ class RedisCacheIT {
     @Autowired
     private StockCacheService cache;
 
+    @SuppressWarnings("resource")
     @Container
     static final GenericContainer<?> redis = new GenericContainer<>(
             DockerImageName.parse("redis:7-alpine"))
