@@ -32,7 +32,7 @@ jobs:
                   cache: maven
 
             - name: Cache Docker layers for Testcontainers
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: /tmp/.testcontainers-cache
                   key: ${{ runner.os }}-testcontainers-${{ hashFiles('**/pom.xml') }}
