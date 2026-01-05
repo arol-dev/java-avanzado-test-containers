@@ -6,9 +6,19 @@ on:
     pull_request:
         branches: [main]
 
+# Cancel redundant workflows on the same branch
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     build:
         runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            checks: write
+            pull-requests: write
 
         steps:
             - name: Checkout code
@@ -21,14 +31,37 @@ jobs:
                   distribution: "temurin"
                   cache: maven
 
+            - name: Cache Docker layers for Testcontainers
+              uses: actions/cache@v4
+              with:
+                  path: /tmp/.testcontainers-cache
+                  key: ${{ runner.os }}-testcontainers-${{ hashFiles('**/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-testcontainers-
+
+            - name: Configure Testcontainers to use cache
+              run: |
+                  mkdir -p ~/.testcontainers.properties.d
+                  echo "cache.volume.name=testcontainers-cache" >> ~/.testcontainers.properties
+
             - name: Build with Maven
-              run: mvn -B compile --file pom.xml
+              run: mvn -B -ntp compile --file pom.xml
 
             - name: Run unit tests
-              run: mvn -B test --file pom.xml
+              run: mvn -B -ntp test --file pom.xml
 
             - name: Run integration tests
-              run: mvn -B verify -DskipTests --file pom.xml
+              run: mvn -B -ntp verify -DskipTests --file pom.xml
+              env:
+                  TESTCONTAINERS_RYUK_DISABLED: false
+
+            - name: Publish Test Results
+              uses: EnricoMi/publish-unit-test-result-action@v2
+              if: always()
+              with:
+                  files: |
+                      target/surefire-reports/*.xml
+                      target/failsafe-reports/*.xml
 
             - name: Upload coverage report
               uses: actions/upload-artifact@v4
@@ -37,3 +70,12 @@ jobs:
                   name: jacoco-report
                   path: target/site/jacoco/
                   retention-days: 7
+
+            - name: Add coverage to PR
+              uses: madrapps/jacoco-report@v1.6.1
+              if: github.event_name == 'pull_request'
+              with:
+                  paths: target/site/jacoco/jacoco.xml
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  min-coverage-overall: 40
+                  min-coverage-changed-files: 60
