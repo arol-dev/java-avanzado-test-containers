@@ -72,7 +72,7 @@ jobs:
                   retention-days: 7
 
             - name: Add coverage to PR
-              uses: madrapps/jacoco-report@v1.6.1
+              uses: madrapps/jacoco-report@v1.7.2
               if: github.event_name == 'pull_request'
               with:
                   paths: target/site/jacoco/jacoco.xml
